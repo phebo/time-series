@@ -10,7 +10,7 @@ ui <- fluidPage(
                   c("Brownian/Lévy" = "brown",
                     "Geometric" = "geo",
                     "Ornstein–Uhlenbeck" = "ou")),
-      sliderInput("nSim", "# Simulated paths", min=10, max=100, step=10, value=10),
+      sliderInput("nSim", "# Simulated paths", min=1, max=100, step=1, value=10),
       sliderInput("Tt", "Total time", min=1, max=25, value=10),
       sliderInput("mu", "Mu", min=-1, max=1, value=0, step=0.1),
       sliderInput("sigma", "Sigma", min=0.1, max=1, value=0.2, step=0.1),
