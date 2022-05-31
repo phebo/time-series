@@ -1,7 +1,8 @@
 library(tidyverse)
 library(RPostgres)
+library(mvtnorm)
 
-writeData <- T
+writeData <- F
 dataDir <- "data"
 
 #### Download data ####
@@ -41,6 +42,41 @@ if(writeData) {
   write_csv(dfIndex, file.path(dataDir, "index.csv"))
 }
 
+#### Simulation ####
+
+rho <- 0.8
+simData <- rmvnorm(100, sigma = rbind(c(1,rho), c(rho,1))) 
+colnames(simData) <- c("x", "y")
+simData[,"x"]
+
+#### Analysis ####
+
+dfGdp
+dfGdp <- dfGdp %>% 
+  rename(
+    gdp = GDPC1,
+    gdp2 = NA000334Q) %>%
+  mutate(
+    growth = gdp / lag(gdp),
+    growth2 = gdp2 / lag(gdp2) - 1
+  )
+ggplot(dfGdp, aes(x = DATE, y = gdp)) + geom_line() + scale_y_log10()
+ggplot(dfGdp, aes(x = DATE, y = gdp2)) + geom_line() + scale_y_log10()
+ggplot(dfGdp, aes(x = growth, y = lag(growth))) + geom_point()
+ggplot(dfGdp, aes(x = growth2, y = lag(growth2))) + geom_point()
+
+tsGdp <- ts(dfGdp$growth2[-1], frequency = 4, start = 1947.25)
+tsGdp
+plot(tsGdp)
+acf(tsGdp)
+
+# Decomposition
+dGdp <- decompose(ts(dfGdp$gdp2, frequency = 4, start = 1947), "multiplicative")
+str(dGdp)
+plot(dGdp$seasonal)
+plot(dGdp$trend)
+plot(dGdp$random)
+acf(dGdp$random, na.action = na.pass)
 
 #### Bonus: WRDS Database info ####
 
