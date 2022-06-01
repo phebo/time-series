@@ -19,7 +19,7 @@ dfGdp <- read_csv("https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1
 username <- "pwibbens"
 wrds <- dbConnect(Postgres(), host='wrds-pgdata.wharton.upenn.edu', port=9737, dbname='wrds', sslmode='require', user=username)
 
-# Compustat annual fundamental data; assets > $1B
+# Compustat annual fundamental data; assets > $10B
 res <- dbSendQuery(wrds,
   "select gvkey,conm,datadate,fyear,icapt,at,dltt,dlc,ebit,pi,xint,txt
      from comp.funda where
@@ -44,34 +44,54 @@ if(writeData) {
 
 #### Simulation ####
 
-rho <- 0.8
-simData <- rmvnorm(100, sigma = rbind(c(1,rho), c(rho,1))) 
+#Correlation
+rho <- 0.2
+simData <- rmvnorm(1e3, sigma = rbind(c(1,rho), c(rho,1))) 
 colnames(simData) <- c("x", "y")
-simData[,"x"]
+mean(simData[,"y"]*simData[,"x"])
+plot(simData[,"x"], simData[,"y"])
+
+#AR(1)
+tSim <- arima.sim(list(ar = 0.9), 1e5)
+plot(tSim)
+acf(tSim)
 
 #### Analysis ####
 
 dfGdp
 dfGdp <- dfGdp %>% 
   rename(
-    gdp = GDPC1,
-    gdp2 = NA000334Q) %>%
+    gdp = GDPC1,  # real gdp, seasonality adjusted
+    gdp2 = NA000334Q) %>%  # real gdp, non-seasonality adjusted
   mutate(
     growth = gdp / lag(gdp),
     growth2 = gdp2 / lag(gdp2) - 1
   )
 ggplot(dfGdp, aes(x = DATE, y = gdp)) + geom_line() + scale_y_log10()
 ggplot(dfGdp, aes(x = DATE, y = gdp2)) + geom_line() + scale_y_log10()
+ggplot(dfGdp, aes(x = DATE, y = growth)) + geom_line() 
+ggplot(dfGdp, aes(x = DATE, y = growth2)) + geom_line()
 ggplot(dfGdp, aes(x = growth, y = lag(growth))) + geom_point()
 ggplot(dfGdp, aes(x = growth2, y = lag(growth2))) + geom_point()
 
-tsGdp <- ts(dfGdp$growth2[-1], frequency = 4, start = 1947.25)
+tsGdp <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
+  pull(growth) %>%
+  ts(frequency = 4, start = 1980)
+
+plot(tsGdp)
+acf(tsGdp, na.action = na.pass)
+
+tsGdp <- ts(dfGdp$growth[-1], frequency = 4, start = 1947.25)
 tsGdp
 plot(tsGdp)
 acf(tsGdp)
 
 # Decomposition
-dGdp <- decompose(ts(dfGdp$gdp2, frequency = 4, start = 1947), "multiplicative")
+dGdp <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
+  pull(gdp2) %>%
+  ts(frequency = 4, start = 1980) %>%
+  decompose("multiplicative")
+
 str(dGdp)
 plot(dGdp$seasonal)
 plot(dGdp$trend)
