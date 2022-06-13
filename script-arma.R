@@ -1,4 +1,5 @@
 library(tidyverse)
+library(rstan)
 
 #### MA(1) ####
 
@@ -44,6 +45,15 @@ dfLam <- dfSim %>% filter(par == "lam") %>% arrange(est) %>%
   mutate(i = row_number(), ymin = est - 1.96 * se, ymax = est + 1.96 * se)
 ggplot(dfLam, aes(x = i, y = est, ymin=ymin, ymax=ymax)) + geom_pointrange() +
   geom_hline(yintercept = 0.9)
+
+# AR(1) Bayesian estimation
+n <- 50
+dat <- list(n = n, x = arima.sim(list(ar = 0.9), n))
+fit1 <- stan("model-ar1.stan", data = dat)
+fit1
+par.sim <- extract(fit1)
+hist(par.sim$lambda)
+hist(par.sim$theta)
 
 # ARMA(1,1) regression
 sim <- function(lam, sdelta, n) {
