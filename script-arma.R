@@ -88,11 +88,11 @@ ggplot(dfLam, aes(x = i, y = est, ymin=ymin, ymax=ymax)) + geom_pointrange() +
 
 lam1 <- 0.9
 lam2 <- 0.8
-phi1 <- lam1 + lam2
-phi2 <- -lam1 * lam2
-c(phi1, phi2)
+alpha1 <- lam1 + lam2
+alpha2 <- -lam1 * lam2
+c(alpha1, alpha2)
 
-xt <- arima.sim(list(ar = c(phi1, phi2)), 1e5)
+xt <- arima.sim(list(ar = c(alpha1, alpha2)), 1e5)
 xt2 <- ts(xt[seq(1, length(xt), 2)])
 
 fit1a <- arima(xt, order = c(2,0,0))
@@ -110,6 +110,21 @@ acf(resid(fit1a))
 acf(resid(fit2a)) # not good
 acf(resid(fit2b)) # good
 
+#### AR(2) models & estimation ####
+lam1 <- .95
+lam2 <- .5
+beta1 <- -.6
+beta2 <- -0.3
+alpha1 <- lam1 + lam2
+alpha2 <- -lam1 * lam2
+c(alpha1, alpha2)
+
+xt <- arima.sim(list(ar = c(alpha1, alpha2), ma = c(beta1, beta2)), 1000)
+arima(xt, order = c(2,0,2))
+
+
+
+
 #### GDP ####
 
 dfGdp <- read_csv("data/gdp.csv")
@@ -123,8 +138,17 @@ dfGdp <- dfGdp %>%
   )
 tsGdp <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
   pull(growth) %>%
-  ts(frequency = 4, start = 1980)
+  ts(frequency = 4, start = 1980) %>% log()
 
 plot(tsGdp)
 acf(tsGdp, na.action = na.pass)
+pacf(tsGdp)
+fit1 <- arima(tsGdp, order = c(1,0,0))
+fit1
+acf(resid(fit1))
+arima(tsGdp, order = c(1,0,1))
+arima(tsGdp, order = c(2,0,0))
+arima(tsGdp, order = c(0,0,2))
+fit2 <- arima(tsGdp, order = c(0,0,3))
+acf(resid(fit2))
 
