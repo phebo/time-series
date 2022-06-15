@@ -109,3 +109,22 @@ c(lam1^2 + lam2^2, - lam1^2 * lam2^2)
 acf(resid(fit1a))
 acf(resid(fit2a)) # not good
 acf(resid(fit2b)) # good
+
+#### GDP ####
+
+dfGdp <- read_csv("data/gdp.csv")
+dfGdp <- dfGdp %>% 
+  rename(
+    gdp = GDPC1,  # real gdp, seasonality adjusted
+    gdp2 = NA000334Q) %>%  # real gdp, non-seasonality adjusted
+  mutate(
+    growth = gdp / lag(gdp),
+    growth2 = gdp2 / lag(gdp2) - 1
+  )
+tsGdp <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
+  pull(growth) %>%
+  ts(frequency = 4, start = 1980)
+
+plot(tsGdp)
+acf(tsGdp, na.action = na.pass)
+
