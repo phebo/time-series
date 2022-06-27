@@ -150,5 +150,27 @@ arima(tsGdp, order = c(1,0,1))
 arima(tsGdp, order = c(2,0,0))
 arima(tsGdp, order = c(0,0,2))
 fit2 <- arima(tsGdp, order = c(0,0,3))
+fit2
 acf(resid(fit2))
 
+tsGdp2 <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
+  pull(gdp) %>%
+  ts(frequency = 4, start = 1980) %>% log()
+plot(tsGdp2)
+acf(tsGdp2)
+pacf(tsGdp2)
+fit1b <- arima(tsGdp, order = c(1,1,0))
+fit1b
+plot(resid(fit1b))
+acf(resid(fit1b))
+
+
+#### Bayesian example ####
+N <- 5
+y <- rnorm(N, 3, 5)
+fit <- stan("example.stan", data = list(N = N, y = y))
+fit
+pars <- extract(fit)
+hist(pars$mu)
+hist(pars$sigma)
+pairs(pars)
