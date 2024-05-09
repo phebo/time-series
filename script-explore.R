@@ -3,20 +3,28 @@ library(RPostgres)
 
 #### Basic commands in R ####
 
+# Internal data sets in R
 ?data
 data()
-data("JohnsonJohnson")
-?JohnsonJohnson
+data("JohnsonJohnson") # Quarterly earnings (dollars) per Johnson & Johnson share 1960–80.
 str(JohnsonJohnson)
 JohnsonJohnson
+
+# Some plots
 plot(JohnsonJohnson)
 plot(log(JohnsonJohnson))
 diff(log(JohnsonJohnson))
 plot(diff(log(JohnsonJohnson)))
-decompose(log(JohnsonJohnson))
+
+# Decomposition
+?decompose
+str(decompose(JohnsonJohnson))
 plot(decompose(JohnsonJohnson))
-plot(decompose(log(JohnsonJohnson)))
 plot(decompose(JohnsonJohnson, type = "multiplicative"))
+plot(decompose(log(JohnsonJohnson)))
+plot(stl(log(JohnsonJohnson), "periodic"))
+plot(stl(log(JohnsonJohnson), s.window = 7)) # Allows changing seasonality pattern over time
+plot(stl(log(JohnsonJohnson), s.window = 21))
 
 #### Download external data ####
 
@@ -66,41 +74,41 @@ if(writeData) {
 
 View(dfGdp)
 dfGdp2 <- dfGdp %>% 
-  rename(
-    gdp = GDPC1,  # real gdp, seasonality adjusted
-    gdp2 = NA000334Q) %>%  # real gdp, non-seasonality adjusted
+  select(
+    date = DATE,
+    gdp = GDP,  # nominal gdp $B, seasonality adjusted
+    gdp2 = NA000334Q) %>%  # nomional gdp $M, non-seasonality adjusted
   mutate(
     growth = gdp / lag(gdp) - 1,
-    growth2 = gdp2 / lag(gdp2) - 1
-  )
-ggplot(dfGdp2, aes(x = DATE, y = gdp)) + geom_line() + scale_y_log10()
-ggplot(dfGdp2, aes(x = DATE, y = gdp2)) + geom_line() + scale_y_log10()
-dfGdp2 %>% select(DATE, gdp, gdp2) %>% pivot_longer(c(gdp, gdp2)) %>%
-  ggplot(aes(x = DATE, y = value, color = name)) + geom_line() + scale_y_log10()
-dfGdp2 %>% select(DATE, growth, growth2) %>% pivot_longer(c(growth, growth2)) %>%
-  ggplot(aes(x = DATE, y = value, color = name, group=name)) + geom_line() + scale_y_log10()
-ggplot(dfGdp2, aes(x = growth, y = lag(growth))) + geom_point()
-ggplot(dfGdp2, aes(x = growth2, y = lag(growth2))) + geom_point()
+    growth2 = gdp2 / lag(gdp2) - 1,
+    index = gdp / gdp[1] * 100,
+    index2 = gdp2 / gdp2[1] * 100)
+ggplot(dfGdp2, aes(x = date, y = gdp)) + geom_line() + scale_y_log10()
+ggplot(dfGdp2, aes(x = date, y = gdp2)) + geom_line() + scale_y_log10()
+dfGdp2 %>% select(date, index, index2) %>% pivot_longer(c(index, index2)) %>%
+  ggplot(aes(x = date, y = value, color = name)) + geom_line() + scale_y_log10()
+dfGdp2 %>% select(date, growth, growth2) %>% pivot_longer(c(growth, growth2)) %>%
+  ggplot(aes(x = date, y = value, color = name, group=name)) + geom_line()
 
-tsGdp <- dfGdp2 %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
-  pull(growth) %>%
-  ts(frequency = 4, start = 1980)
+tsGrowth <- ts(dfGdp2$growth[-1], frequency = 4, start = 1947.25)
+tsGrowth
+plot(tsGrowth)
 
+tsGdp <- ts(dfGdp2$index, frequency = 4, start = 1947)
+tsGdp2 <- ts(dfGdp2$index2, frequency = 4, start = 1947)
 plot(tsGdp)
-acf(tsGdp, na.action = na.pass)
-
-tsGdp <- ts(dfGdp2$growth[-1], frequency = 4, start = 1947.25)
-tsGdp
-plot(tsGdp)
+plot(tsGdp2)
 
 # Decomposition
-dGdp <- dfGdp2 %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
-  pull(gdp2) %>%
-  ts(frequency = 4, start = 1980) %>%
-  decompose("multiplicative")
-
-str(dGdp)
+plot(log(tsGdp))
+dGdp <- decompose(log(tsGdp2))
 plot(dGdp)
+dGdp2 <- stl(log(tsGdp2), s.window = 7)
+plot(dGdp2)
+dGdp3 <- stl(log(tsGdp2), s.window = 21)
+plot(dGdp3)
+dGdp4 <- stl(log(tsGdp), s.window = 21) 
+plot(dGdp4) # Some seasonality left in the FED's "seasonality adjusted" data?
 
 #### Bonus: WRDS Database info ####
 
