@@ -24,6 +24,7 @@ plot(decompose(JohnsonJohnson, type = "multiplicative"))
 plot(decompose(log(JohnsonJohnson)))
 plot(stl(log(JohnsonJohnson), "periodic"))
 plot(stl(log(JohnsonJohnson), s.window = 7)) # Allows changing seasonality pattern over time
+plot(stl(log(JohnsonJohnson), s.window = 13)) # Allows changing seasonality pattern over time
 plot(stl(log(JohnsonJohnson), s.window = 21))
 
 #### Download external data ####
@@ -83,7 +84,8 @@ dfGdp2 <- dfGdp %>%
     growth2 = gdp2 / lag(gdp2) - 1,
     index = gdp / gdp[1] * 100,
     index2 = gdp2 / gdp2[1] * 100)
-ggplot(dfGdp2, aes(x = date, y = gdp)) + geom_line() + scale_y_log10()
+ggplot(dfGdp2, aes(x = date, y = gdp)) + geom_line() +
+  scale_y_log10()
 ggplot(dfGdp2, aes(x = date, y = gdp2)) + geom_line() + scale_y_log10()
 dfGdp2 %>% select(date, index, index2) %>% pivot_longer(c(index, index2)) %>%
   ggplot(aes(x = date, y = value, color = name)) + geom_line() + scale_y_log10()
