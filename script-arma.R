@@ -1,7 +1,15 @@
 library(tidyverse)
 library(rstan)
 
+#AR(1)
+tSim <- arima.sim(list(ar = 0.9), 1e5)
+plot(tSim)
+acf(tSim)
+
+
 #### MA(1) ####
+
+
 
 xt <- arima.sim(list(ma=-0.3), 100)
 plot(xt)
