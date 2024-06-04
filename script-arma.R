@@ -2,19 +2,39 @@ library(tidyverse)
 library(rstan)
 
 #AR(1)
-tSim <- arima.sim(list(ar = 0.9), 1e5)
+lam <- .9
+n <- 1e2
+
+tSim <- arima.sim(list(ar = lam), n)
 plot(tSim)
+sqrt(1/(1-lam^2))
+sqrt(var(tSim))
+
 acf(tSim)
+lam^40
+pacf(tSim)
+
+
+lam <- 1.01
+n <- 500
+
+eps <- rnorm(n)
+x <- rep(0, n)
+for(tt in 1:(n-1)) {
+  x[tt+1] <- lam * x[tt] + eps[tt]
+}
+x <- ts(x)
+plot(x)
+acf(x)
+pacf(x)
 
 
 #### MA(1) ####
 
-
-
 xt <- arima.sim(list(ma=-0.3), 100)
 plot(xt)
 acf(xt)
-
+pacf(xt)
 
 #### ARMA(1,1) ####
 lam <- 0.9
