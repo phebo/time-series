@@ -28,6 +28,88 @@ plot(x)
 acf(x)
 pacf(x)
 
+# Simulate OU process
+th <- 0.1 # Corresponds with charateristic time scale of T = 1/th
+sigma0 <- 1 # Volatility of process
+dt <- 1/4 # Sampling interval
+Tt <- 20 # Sampling time
+
+alpha <- exp(-th * dt)
+sigma <- sigma0 * sqrt(dt)
+n <- floor(Tt / dt)
+
+alpha # AR(1) parameter
+sqrt(sigma^2 / (1-alpha^2)) # Stationary standard deviation AR(1)
+sigma0 / sqrt(2 * th) # Stationary standard deviation of OU
+
+
+tSim <- ts(arima.sim(list(ar = alpha), n, sd = sigma), frequency = 1/dt)
+plot(tSim)
+
+df <- tibble(y=as.vector(tSim), x=dplyr::lag(y))
+fit <- lm(y~x, df)
+summary(fit)
+coef(fit)[2]
+sqrt(vcov(fit)[2,2]) #se
+
+fit <- lm(y~x-1, df)
+summary(fit)
+coef(fit)[1]
+sqrt(vcov(fit)) #se
+
+fit <- arima(tSim, order = c(1,0,0))
+print(fit)
+coef(fit)[1]
+sqrt(vcov(fit)[1,1]) #se
+
+fit <- arima(tSim, order = c(1,0,0), include.mean = F)
+print(fit)
+coef(fit)[1]
+sqrt(vcov(fit)[1,1]) #se
+
+dat <- list(n = n, x = tSim)
+fit <- stan("model-ar1.stan", data = dat)
+
+
+# Monte Carlo simulation
+
+th <- 0.5 # Corresponds with charateristic time scale of T = 1/th
+sigma0 <- 1 # Volatility of process
+dt <- 1/4 # Sampling interval
+Tt <- 20 # Sampling time
+
+alpha <- exp(-th * dt)
+sigma <- sigma0 * sqrt(dt)
+n <- floor(Tt / dt)
+
+N <- 1e3
+
+dfSim <- tibble(i=1:N) %>% rowwise() %>%
+  mutate(
+    tSim = list(ts(arima.sim(list(ar = alpha), n, sd = sigma), frequency = 1/dt)),
+    ols = list({df <- tibble(y=as.vector(tSim), x=dplyr::lag(y)); fit <- lm(y~x-1, df)}),
+    #arima = list(arima(tSim, order = c(1,0,0))),
+    arima0 = list(tryCatch({arima(tSim, order = c(1,0,0))}, error= function(e) NA)),
+    arima = list(tryCatch({arima(tSim, order = c(1,0,0), include.mean = F)}, error= function(e) NA))
+    ) %>% ungroup() %>% filter(!is.na(arima), !is.na(arima0))
+dfSim2 <- dfSim %>% select(-tSim) %>% pivot_longer(ols:arima) %>% rowwise() %>%
+  mutate(
+    alpha.est = coef(value)[1],
+    alpha.se = sqrt(vcov(value)[1,1]),
+    low = alpha.est - 1.96 * alpha.se,
+    high = alpha.est + 1.96 * alpha.se) %>% ungroup() %>%
+  arrange(name, alpha.est) %>% mutate(i2 = rep(1:nrow(dfSim),3)) %>%
+  select(-value)
+ggplot(dfSim2, aes(x = i2, y = alpha.est, ymin=low, ymax=high)) +
+  facet_wrap(~name,scales = "free_x", ncol=1 ) +
+  geom_pointrange() + geom_hline(yintercept = alpha)
+dfSim2 %>% 
+  mutate(b = between(rep(alpha, nrow(dfSim2)), low, high)) %>%
+  group_by(name) %>%
+  summarize(
+    mean = mean(alpha.est),
+    cover = sum(b)/n())
+
 
 #### MA(1) ####
 
