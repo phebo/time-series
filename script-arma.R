@@ -113,10 +113,12 @@ dfSim2 %>%
 
 #### MA(1) ####
 
-xt <- arima.sim(list(ma=-0.3), 100)
+xt <- arima.sim(list(ma=-0.5), 1000)
 plot(xt)
-acf(xt)
-pacf(xt)
+acf(xt) # Just one period
+-.5/(1+.5^2) # rho_1
+pacf(xt) # Exponential decay
+# Roles of ACF and PACF are exactly reversed from AR(1)
 
 #### ARMA(1,1) ####
 lam <- 0.9
@@ -124,17 +126,20 @@ seps <- 1
 sdelta <- 2
 n <- 1e5
 
-xt <- arima.sim(list(ar = lam), n) * seps
+xt <- arima.sim(list(ar = lam), n) * seps #AR(1)
 plot(xt)
 var(xt)
 seps^2 / (1-lam^2)
 
-yt <- xt + rnorm(n, sd = sdelta)
+yt <- xt + rnorm(n, sd = sdelta) # AR(1) with noise
 plot(yt)
 fit1 <- arima(yt, order = c(1,0,0), include.mean = F)
+df <- tibble(y=as.vector(yt), x=dplyr::lag(y))
+fit1b <- lm(y~x, df)
 fit2 <- arima(yt, order = c(1,0,1), include.mean = F)
-fit1
-fit2
+fit1 # Estimate 0.508; 
+summary(fit1b) # Estimate 0.508
+fit2 # Estimate 0.898
 g <- (seps / sdelta)^2 / 2 + 1; -g+sqrt(g^2-1) # Approx MA term, for lam ~ 1
 
 acf(resid(fit1))
@@ -158,7 +163,9 @@ ggplot(dfLam, aes(x = i, y = est, ymin=ymin, ymax=ymax)) + geom_pointrange() +
 
 # AR(1) Bayesian estimation
 n <- 50
-dat <- list(n = n, x = arima.sim(list(ar = 0.9), n))
+x <- arima.sim(list(ar = 0.9), n)
+plot(x)
+dat <- list(n = n, x = x)
 fit1 <- stan("model-ar1.stan", data = dat)
 fit1
 par.sim <- extract(fit1)
