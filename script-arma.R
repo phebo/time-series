@@ -164,6 +164,7 @@ ggplot(dfLam, aes(x = i, y = est, ymin=ymin, ymax=ymax)) + geom_pointrange() +
 # AR(1) Bayesian estimation
 n <- 50
 x <- arima.sim(list(ar = 0.9), n)
+
 plot(x)
 dat <- list(n = n, x = x)
 fit1 <- stan("model-ar1.stan", data = dat)
@@ -171,6 +172,13 @@ fit1
 par.sim <- extract(fit1)
 hist(par.sim$lambda)
 hist(par.sim$theta)
+arima(x, c(1,0,0))
+fit1b <- stan("model-ar1b.stan", data = dat)
+fit1b
+par.sim <- extract(fit1b)
+hist(par.sim$lambda)
+hist(par.sim$theta)
+hist(par.sim$time)
 
 # ARMA(1,1) regression
 sim <- function(lam, sdelta, n) {

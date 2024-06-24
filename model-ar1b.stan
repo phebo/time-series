@@ -1,3 +1,5 @@
+# Stationary by design
+
 data {
   int<lower=0> n;
   vector[n] x;
@@ -10,7 +12,9 @@ parameters {
 
 transformed parameters {
   real<lower=0,upper=1> lambda;
+  real<lower=0> time;
   lambda = exp(-theta);
+  time = 1/theta;
 }
 
 model {
