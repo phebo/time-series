@@ -251,17 +251,26 @@ tsGdp <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 20
   ts(frequency = 4, start = 1980) %>% log()
 
 plot(tsGdp)
+plot(decompose(tsGdp)) # No real seasonality left; seems stationary
 acf(tsGdp, na.action = na.pass)
 pacf(tsGdp)
 fit1 <- arima(tsGdp, order = c(1,0,0))
 fit1
 acf(resid(fit1))
-arima(tsGdp, order = c(1,0,1))
+pacf(resid(fit1))
+fit1b <- arima(tsGdp, order = c(1,0,1))
+fit1b
 arima(tsGdp, order = c(2,0,0))
-arima(tsGdp, order = c(0,0,2))
+fit1c <- arima(tsGdp, order = c(0,0,2))
+fit1c
+acf(resid(fit1c))
+pacf(resid(fit1c))
 fit2 <- arima(tsGdp, order = c(0,0,3))
 fit2
 acf(resid(fit2))
+# Plausible models: AR(1), MA(3), or ARMA(1,1)
+# But MA(3) is less parsimonious, higher AIC, and theoretically not plausible => less favored
+# AR(1) and ARMA(1,1) are both reasonable models it seems both theoretically and empirically
 
 tsGdp2 <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2019)) %>%
   pull(gdp) %>%
@@ -269,10 +278,15 @@ tsGdp2 <- dfGdp %>% filter(between(as.numeric(format(dfGdp$DATE, "%Y")), 1980, 2
 plot(tsGdp2)
 acf(tsGdp2)
 pacf(tsGdp2)
-fit1b <- arima(tsGdp, order = c(1,1,0))
-fit1b
-plot(resid(fit1b))
-acf(resid(fit1b))
+arima(tsGdp2, order = c(1,0,0))
+fit3 <- arima(tsGdp2, order = c(1,1,0))
+fit3
+plot(resid(fit3))
+acf(resid(fit3))
+fit3b <- arima(tsGdp2, order = c(1,1,1))
+fit3b
+plot(resid(fit3b))
+acf(resid(fit3b))
 
 
 #### Bayesian example ####
@@ -284,3 +298,26 @@ pars <- extract(fit)
 hist(pars$mu)
 hist(pars$sigma)
 pairs(pars)
+
+
+#### (P)ACFs for various models ####
+lam1 <- 0.9
+lam2 <- 0.9
+alpha1 = lam1 + lam2
+alpha2 = -lam1 * lam2
+x <- arima.sim(list(ar = c(alpha1, alpha2), ma=c(-0.7,-0.1)), n = 1e4)
+acf(x)
+pacf(x)
+plot(x)
+arima(x, c(1,0,0))
+arima(x, c(2,0,0))
+arima(x, c(2,0,1))
+arima(x, c(1,0,1))
+arima(x, c(2,0,2))
+c(alpha1, alpha2)
+# With noise, very hard to find second AR(2) term; often underpowered; need ~10^4 data points
+
+acf(arima.sim(list(ar = 0.93), n = 1e2))
+pacf(arima.sim(list(ar = 0.93), n = 1e2))
+
+
